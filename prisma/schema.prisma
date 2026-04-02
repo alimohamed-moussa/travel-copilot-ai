@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  clerkUserId        String    @unique
+  email              String?   @unique
+  firstName          String?
+  lastName           String?
+  imageUrl           String?
+
+  preferredOrigin    String?
+  preferredCurrency  String    @default("EUR")
+  preferredCabin     Cabin?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  searches           Search[]
+  favorites          Favorite[]
+}
+
+model Search {
+  id                 String       @id @default(cuid())
+  userId             String?
+  rawPrompt          String
+  mode               SearchMode
+  status             SearchStatus @default(COMPLETED)
+
+  originCode         String?
+  originType         LocationType?
+  destinationCode    String?
+  destinationType    LocationType?
+
+  departureDate      DateTime?
+  returnDate         DateTime?
+  fromDate           DateTime?
+  untilDate          DateTime?
+
+  budgetMax          Int?
+  currency           String       @default("EUR")
+  cabin              Cabin?
+  adults             Int          @default(1)
+  children           Int          @default(0)
+  infants            Int          @default(0)
+  flexibleDates      Boolean      @default(false)
+
+  parsedQuery        Json?
+  rawApiResponse     Json?
+  recommendationText String?
+
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  user               User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recommendations    Recommendation[]
+}
+
+model Recommendation {
+  id                 String               @id @default(cuid())
+  searchId           String
+  title              String
+  summary            String
+  score              Float
+  priceAmount        Float?
+  priceCurrency      String?
+  rank               Int
+  isPrimary          Boolean              @default(false)
+
+  routeSummary       String?
+  departureAirport   String?
+  arrivalAirport     String?
+  durationMinutes    Int?
+  direct             Boolean?
+
+  sourceType         RecommendationSource
+  sourcePayload      Json?
+  createdAt          DateTime             @default(now())
+
+  search             Search               @relation(fields: [searchId], references: [id], onDelete: Cascade)
+}
+
+model Favorite {
+  id                 String       @id @default(cuid())
+  userId             String
+  type               FavoriteType
+  label              String
+  payload            Json
+  createdAt          DateTime     @default(now())
+
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SearchMode {
+  INSPIRATION
+  ROUTE
+}
+
+enum SearchStatus {
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum LocationType {
+  CITY
+  AIRPORT
+}
+
+enum Cabin {
+  ECONOMY
+  PREMIUM
+  BUSINESS
+  FIRST
+}
+
+enum RecommendationSource {
+  LOWEST_FARES_BY_DESTINATION
+  LOWEST_FARE_OFFERS
+  AVAILABLE_OFFERS
+}
+
+enum FavoriteType {
+  DESTINATION
+  SEARCH
+  OFFER
+}
